@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h2>NNSN POC Test</h2>
+
+<button onclick="ping()">Test Backend</button>
+
+<pre id="output"></pre>
+
+<script>
+async function ping() {
+  const url = "https://script.google.com/macros/s/AKfycbxQzEpkpYWH4dIEj2rANbS1YPilHaKHgpuOSnOHTqWUmSKYYuGbuSugymc3KLfhCNO7/exec?action=ping";
+
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    document.getElementById("output").textContent = JSON.stringify(data, null, 2);
+  } catch (err) {
+    document.getElementById("output").textContent = "ERROR: " + err;
+  }
+}
+</script>
+
+</body>
+</html>
