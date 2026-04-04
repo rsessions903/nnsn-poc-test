@@ -1,11 +1,15 @@
 <!DOCTYPE html>
 <html>
+<head>
+  <meta charset="UTF-8">
+  <title>NNSN Test 1 — Protected Content Gating</title>
+</head>
 <body>
   <h2>NNSN Test 1 — Protected Content Gating</h2>
 
-  <button onclick="testValid()">Test Valid SID</button>
-  <button onclick="testMissing()">Test Missing SID</button>
-  <button onclick="testFake()">Test Fake SID</button>
+  <button onclick="testValid()">Test Valid Session</button>
+  <button onclick="testMissing()">Test Missing Session</button>
+  <button onclick="testFake()">Test Fake Session</button>
 
   <h3>URL</h3>
   <pre id="urlbox"></pre>
@@ -18,7 +22,7 @@
 
     function buildUrl(params) {
       const url = new URL(BASE_URL);
-      Object.keys(params).forEach(key => {
+      Object.keys(params).forEach(function (key) {
         url.searchParams.set(key, params[key]);
       });
       return url.toString();
@@ -49,7 +53,7 @@
     function testValid() {
       callBackend({
         action: 'getProtectedContent',
-        sid: 'TEST_VALID_SID_123'
+        sessionId: 'TEST_VALID_SID_123'
       });
     }
 
@@ -62,7 +66,7 @@
     function testFake() {
       callBackend({
         action: 'getProtectedContent',
-        sid: 'FAKE123'
+        sessionId: 'FAKE123'
       });
     }
   </script>
