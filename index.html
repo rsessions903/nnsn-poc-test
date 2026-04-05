@@ -90,26 +90,22 @@
           'ERROR: No active prompt loaded.';
         return;
       }
-
-      const payload = {
-        action: 'submitStructuredFeedbackResponse',
-        sessionId: TEST_SESSION_ID,
-        pid: TEST_PID,
-        promptId: currentPrompt.promptId,
-        likertValue: likertValue
-      };
-
+    
+      const formData = new URLSearchParams();
+      formData.set('action', 'submitStructuredFeedbackResponse');
+      formData.set('sessionId', TEST_SESSION_ID);
+      formData.set('pid', TEST_PID);
+      formData.set('promptId', currentPrompt.promptId);
+      formData.set('likertValue', String(likertValue));
+    
       try {
         const res = await fetch(BASE_URL, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(payload)
+          body: formData
         });
-
+    
         const text = await res.text();
-
+    
         try {
           const data = JSON.parse(text);
           document.getElementById('submitOutput').textContent =
@@ -124,6 +120,7 @@
       }
     }
 
+    
     window.addEventListener('load', function () {
       loadPrompt();
     });
