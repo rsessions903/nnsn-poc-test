@@ -2,23 +2,44 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>NNSN Test 1 — Protected Content Gating</title>
+  <title>NNSN Test 2 — Structured Feedback</title>
 </head>
 <body>
-  <h2>NNSN Test 1 — Protected Content Gating</h2>
+  <h2>Hello User</h2>
+  <p>NNSN Test 2 — Structured Feedback mixed-method test</p>
 
-  <button onclick="testValid()">Test Valid Session</button>
-  <button onclick="testMissing()">Test Missing Session</button>
-  <button onclick="testFake()">Test Fake Session</button>
+  <div>
+    <strong>Prompt Request URL</strong>
+    <pre id="promptUrlBox"></pre>
+  </div>
 
-  <h3>URL</h3>
-  <pre id="urlbox"></pre>
+  <div>
+    <strong>Prompt Response JSON</strong>
+    <pre id="promptOutput">Loading prompt...</pre>
+  </div>
 
-  <h3>Output</h3>
-  <pre id="output"></pre>
+  <hr>
+
+  <div>
+    <strong>Submit Response</strong><br><br>
+    <button onclick="submitLikert(1)">1</button>
+    <button onclick="submitLikert(2)">2</button>
+    <button onclick="submitLikert(3)">3</button>
+    <button onclick="submitLikert(4)">4</button>
+    <button onclick="submitLikert(5)">5</button>
+  </div>
+
+  <div style="margin-top: 16px;">
+    <strong>Submit Response JSON</strong>
+    <pre id="submitOutput">No submission yet.</pre>
+  </div>
 
   <script>
     const BASE_URL = 'https://script.google.com/macros/s/AKfycbxQzEpkpYWH4dIEj2rANbS1YPilHaKHgpuOSnOHTqWUmSKYYuGbuSugymc3KLfhCNO7/exec';
+    const TEST_SESSION_ID = 'TEST_VALID_SID_123';
+    const TEST_PID = 'TEST_PID_001';
+
+    let currentPrompt = null;
 
     function buildUrl(params) {
       const url = new URL(BASE_URL);
@@ -28,9 +49,14 @@
       return url.toString();
     }
 
-    async function callBackend(params) {
-      const url = buildUrl(params);
-      document.getElementById('urlbox').textContent = url;
+    async function loadPrompt() {
+      const url = buildUrl({
+        action: 'getStructuredFeedbackPrompt',
+        sessionId: TEST_SESSION_ID,
+        pid: TEST_PID
+      });
+
+      document.getElementById('promptUrlBox').textContent = url;
 
       try {
         const res = await fetch(url);
@@ -38,37 +64,69 @@
 
         try {
           const data = JSON.parse(text);
-          document.getElementById('output').textContent =
+          document.getElementById('promptOutput').textContent =
+            JSON.stringify(data, null, 2);
+
+          if (data && data.ok && data.prompt) {
+            currentPrompt = data.prompt;
+          } else {
+            currentPrompt = null;
+          }
+        } catch (jsonErr) {
+          document.getElementById('promptOutput').textContent =
+            'Non-JSON response:\n' + text;
+          currentPrompt = null;
+        }
+      } catch (err) {
+        document.getElementById('promptOutput').textContent =
+          'ERROR: ' + err;
+        currentPrompt = null;
+      }
+    }
+
+    async function submitLikert(likertValue) {
+      if (!currentPrompt || !currentPrompt.promptId) {
+        document.getElementById('submitOutput').textContent =
+          'ERROR: No active prompt loaded.';
+        return;
+      }
+
+      const payload = {
+        action: 'submitStructuredFeedbackResponse',
+        sessionId: TEST_SESSION_ID,
+        pid: TEST_PID,
+        promptId: currentPrompt.promptId,
+        likertValue: likertValue
+      };
+
+      try {
+        const res = await fetch(BASE_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const text = await res.text();
+
+        try {
+          const data = JSON.parse(text);
+          document.getElementById('submitOutput').textContent =
             JSON.stringify(data, null, 2);
         } catch (jsonErr) {
-          document.getElementById('output').textContent =
+          document.getElementById('submitOutput').textContent =
             'Non-JSON response:\n' + text;
         }
       } catch (err) {
-        document.getElementById('output').textContent =
+        document.getElementById('submitOutput').textContent =
           'ERROR: ' + err;
       }
     }
 
-    function testValid() {
-      callBackend({
-        action: 'getProtectedContent',
-        sessionId: 'TEST_VALID_SID_123'
-      });
-    }
-
-    function testMissing() {
-      callBackend({
-        action: 'getProtectedContent'
-      });
-    }
-
-    function testFake() {
-      callBackend({
-        action: 'getProtectedContent',
-        sessionId: 'FAKE123'
-      });
-    }
+    window.addEventListener('load', function () {
+      loadPrompt();
+    });
   </script>
 </body>
 </html>
