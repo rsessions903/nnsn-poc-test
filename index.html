@@ -2,36 +2,37 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>NNSN Test 2 — Structured Feedback</title>
+  <title>NNSN Test 3 — Multi-Component Bootstrap</title>
 </head>
 <body>
   <h2>Hello User</h2>
-  <p>NNSN Test 2 — Structured Feedback mixed-method test</p>
+  <p>NNSN Test 3 — Multi-Component Bootstrap</p>
 
   <div>
-    <strong>Prompt Request URL</strong>
-    <pre id="promptUrlBox"></pre>
-  </div>
-
-  <div>
-    <strong>Prompt Response JSON</strong>
-    <pre id="promptOutput">Loading prompt...</pre>
+    <strong>Protected Content JSON (1)</strong>
+    <pre id="protectedContentOutput1">Loading...</pre>
   </div>
 
   <hr>
 
   <div>
-    <strong>Submit Response</strong><br><br>
-    <button onclick="submitLikert(1)">1</button>
-    <button onclick="submitLikert(2)">2</button>
-    <button onclick="submitLikert(3)">3</button>
-    <button onclick="submitLikert(4)">4</button>
-    <button onclick="submitLikert(5)">5</button>
+    <strong>Structured Feedback JSON</strong>
+    <pre id="feedbackOutput">Loading...</pre>
   </div>
 
-  <div style="margin-top: 16px;">
-    <strong>Submit Response JSON</strong>
-    <pre id="submitOutput">No submission yet.</pre>
+  <hr>
+
+  <div>
+    <strong>Protected Video JSON</strong>
+    <pre id="videoOutput">Loading...</pre>
+    <button id="videoButton" style="display:none;" onclick="openProtectedVideo()">Open Study Team Video</button>
+  </div>
+
+  <hr>
+
+  <div>
+    <strong>Protected Content JSON (2)</strong>
+    <pre id="protectedContentOutput2">Loading...</pre>
   </div>
 
   <script>
@@ -39,7 +40,7 @@
     const TEST_SESSION_ID = 'TEST_VALID_SID_123';
     const TEST_PID = 'TEST_PID_001';
 
-    let currentPrompt = null;
+    let protectedVideoUrl = '';
 
     function buildUrl(params) {
       const url = new URL(BASE_URL);
@@ -49,14 +50,8 @@
       return url.toString();
     }
 
-    async function loadPrompt() {
-      const url = buildUrl({
-        action: 'getStructuredFeedbackPrompt',
-        sessionId: TEST_SESSION_ID,
-        pid: TEST_PID
-      });
-
-      document.getElementById('promptUrlBox').textContent = url;
+    async function fetchJson(params, outputElementId) {
+      const url = buildUrl(params);
 
       try {
         const res = await fetch(url);
@@ -64,65 +59,76 @@
 
         try {
           const data = JSON.parse(text);
-          document.getElementById('promptOutput').textContent =
+          document.getElementById(outputElementId).textContent =
             JSON.stringify(data, null, 2);
-
-          if (data && data.ok && data.prompt) {
-            currentPrompt = data.prompt;
-          } else {
-            currentPrompt = null;
-          }
+          return data;
         } catch (jsonErr) {
-          document.getElementById('promptOutput').textContent =
+          document.getElementById(outputElementId).textContent =
             'Non-JSON response:\n' + text;
-          currentPrompt = null;
+          return null;
         }
       } catch (err) {
-        document.getElementById('promptOutput').textContent =
+        document.getElementById(outputElementId).textContent =
           'ERROR: ' + err;
-        currentPrompt = null;
+        return null;
       }
     }
 
-    async function submitLikert(likertValue) {
-      if (!currentPrompt || !currentPrompt.promptId) {
-        document.getElementById('submitOutput').textContent =
-          'ERROR: No active prompt loaded.';
-        return;
+    async function bootstrapPage() {
+      await fetchJson(
+        {
+          action: 'getProtectedContent',
+          sessionId: TEST_SESSION_ID
+        },
+        'protectedContentOutput1'
+      );
+
+      await fetchJson(
+        {
+          action: 'getStructuredFeedbackPrompt',
+          sessionId: TEST_SESSION_ID,
+          pid: TEST_PID
+        },
+        'feedbackOutput'
+      );
+
+      const videoData = await fetchJson(
+        {
+          action: 'getProtectedVideoUrl',
+          sessionId: TEST_SESSION_ID
+        },
+        'videoOutput'
+      );
+
+      if (
+        videoData &&
+        videoData.ok &&
+        videoData.video &&
+        videoData.video.url
+      ) {
+        protectedVideoUrl = videoData.video.url;
+        document.getElementById('videoButton').style.display = 'inline-block';
+      } else {
+        protectedVideoUrl = '';
+        document.getElementById('videoButton').style.display = 'none';
       }
-    
-      const formData = new URLSearchParams();
-      formData.set('action', 'submitStructuredFeedbackResponse');
-      formData.set('sessionId', TEST_SESSION_ID);
-      formData.set('pid', TEST_PID);
-      formData.set('promptId', currentPrompt.promptId);
-      formData.set('likertValue', String(likertValue));
-    
-      try {
-        const res = await fetch(BASE_URL, {
-          method: 'POST',
-          body: formData
-        });
-    
-        const text = await res.text();
-    
-        try {
-          const data = JSON.parse(text);
-          document.getElementById('submitOutput').textContent =
-            JSON.stringify(data, null, 2);
-        } catch (jsonErr) {
-          document.getElementById('submitOutput').textContent =
-            'Non-JSON response:\n' + text;
-        }
-      } catch (err) {
-        document.getElementById('submitOutput').textContent =
-          'ERROR: ' + err;
-      }
+
+      await fetchJson(
+        {
+          action: 'getProtectedContent',
+          sessionId: TEST_SESSION_ID
+        },
+        'protectedContentOutput2'
+      );
     }
 
-    
+    function openProtectedVideo() {
+      if (!protectedVideoUrl) return;
+      window.open(protectedVideoUrl, '_blank');
+    }
+
     window.addEventListener('load', function () {
-      loadPrompt();
+      bootstrapPage();
     });
   </script>
 </body>
